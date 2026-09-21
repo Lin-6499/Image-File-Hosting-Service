@@ -1,0 +1,207 @@
+{
+  // Launch configurations, grouped by what you are trying to do.
+  //
+  // "type": "debugpy" is the current Python extension's debugger id. On
+  // extensions older than 2024.x use "python" instead.
+  //
+  // Note on `justMyCode: false`: without it the debugger steps over anything
+  // inside site-packages, which hides Starlette/FastAPI frames -- exactly the
+  // frames you want when working out why a request returned 500.
+  "version": "0.2.0",
+  "configurations": [
+    // ------------------------------------------------------------------
+    // Server
+    // ------------------------------------------------------------------
+    {
+      "name": "Dev server (autoreload)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "scripts.dev",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      // The reloader runs the app in a child process. Without this the
+      // debugger only attaches to the parent watcher and breakpoints in
+      // request handlers never fire.
+      "subProcess": true,
+      "purpose": ["debug-in-terminal"]
+    },
+    {
+      "name": "Dev server (debug, no reload)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "uvicorn",
+      "args": [
+        "app.main:app",
+        "--host", "127.0.0.1",
+        "--port", "8000",
+        "--log-level", "info"
+      ],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "purpose": ["debug-in-terminal"]
+    },
+    {
+      "name": "Dev server (AV_BACKEND=stub)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "uvicorn",
+      "args": [
+        "app.main:app",
+        "--host", "127.0.0.1",
+        "--port", "8000",
+        "--log-level", "info"
+      ],
+      "env": {
+        "AV_BACKEND": "stub"
+      },
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "purpose": ["debug-in-terminal"]
+    },
+
+    // ------------------------------------------------------------------
+    // Tests -- all isolated, no server required
+    // ------------------------------------------------------------------
+    {
+      "name": "pytest: all tests",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "pytest",
+      "args": ["-q"],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "justMyCode": false
+    },
+    {
+      "name": "pytest: current file",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "pytest",
+      "args": ["${file}", "-q"],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "justMyCode": false
+    },
+    {
+      "name": "pytest: current test method",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "pytest",
+      "args": ["${file}", "-q", "-k", "${selectedText}"],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "justMyCode": false
+    },
+    {
+      "name": "Smoke test (ASGI, isolated)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "scripts.smoke_test",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "justMyCode": false
+    },
+    {
+      "name": "Scan demo (ASGI, isolated)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "scripts.scan_demo",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "justMyCode": false
+    },
+
+    // ------------------------------------------------------------------
+    // Against a running server -- start one of the server configs first
+    // ------------------------------------------------------------------
+    {
+      "name": "Demo (server must be running)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "scripts.demo",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "justMyCode": false
+    },
+    {
+      "name": "E2E over real HTTP (server must be running)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "scripts.e2e_local",
+      "args": ["http://127.0.0.1:8000"],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "justMyCode": false
+    },
+    {
+      "name": "AV gate over real HTTP (server with AV_BACKEND=stub)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "scripts.av_e2e",
+      "args": ["http://127.0.0.1:8000"],
+      "env": {
+        "AV_BACKEND": "stub"
+      },
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "justMyCode": false
+    },
+
+    // ------------------------------------------------------------------
+    // Maintenance
+    // ------------------------------------------------------------------
+    {
+      "name": "Audit blob store",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "scripts.verify_blobs",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "justMyCode": false
+    },
+    {
+      "name": "Cleanup sweep",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "scripts.cleanup",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "justMyCode": false
+    },
+    {
+      "name": "Mint API key",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "scripts.mintkey",
+      "args": ["${input:keyName}"],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "justMyCode": false
+    },
+
+    // ------------------------------------------------------------------
+    // Generic
+    // ------------------------------------------------------------------
+    {
+      "name": "Current file",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${file}",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "justMyCode": false
+    }
+  ],
+
+  "inputs": [
+    {
+      "id": "keyName",
+      "type": "promptString",
+      "description": "API key label (e.g. codex-dev)",
+      "default": "dev"
+    }
+  ]
+}

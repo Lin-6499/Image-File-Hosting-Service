@@ -1,0 +1,22 @@
+{
+  // VS Code offers these on first open. All are optional except the Python
+  // ones; the project runs fine from a plain terminal without any of them.
+  "recommendations": [
+    // Interpreter selection, Test Explorer, and the debugger that launch.json
+    // and tasks.json depend on.
+    "ms-python.python",
+    "ms-python.debugpy",
+
+    // Type checking and IntelliSense. Worth it here because the signing and
+    // storage modules carry most of the correctness risk.
+    "ms-python.vscode-pylance",
+
+    // Linting. Catches the unused-import and bare-except class of problem that
+    // this codebase is otherwise careful about.
+    "charliermarsh.ruff",
+
+    // Lets .vscode/api.http act as a click-to-send console for the HTTP API.
+    "humao.rest-client"
+  ],
+  "unwantedRecommendations": []
+}

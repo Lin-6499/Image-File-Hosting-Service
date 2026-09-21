@@ -1,0 +1,40 @@
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Runtime data: blobs, thumbnails, tmp fragments, SQLite files.
+# Never commit these -- they are the payload, not source.
+data/
+
+# Manual-verification scratch space (see MANUAL_TESTING.md)
+scratch/
+
+# Secrets
+.env
+secret.txt
+*.key
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Editors / OS
+#
+# .vscode is committed on purpose: the launch configs, tasks and settings are
+# part of the project's documented workflow (see the VS Code section in
+# README.md). Personal overrides stay ignored -- put those in *.code-workspace
+# or a user-level profile rather than editing the shared files.
+.vscode/*
+!.vscode/settings.json
+!.vscode/launch.json
+!.vscode/tasks.json
+!.vscode/extensions.json
+!.vscode/api.http
+.idea/
+Thumbs.db
+desktop.ini

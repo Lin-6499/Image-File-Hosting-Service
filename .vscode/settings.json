@@ -1,0 +1,57 @@
+{
+  // Point every tool at the project's own virtualenv. Using a bare "python"
+  // would silently pick up whatever is on PATH, and this project deliberately
+  // keeps its dependencies out of the global interpreter.
+  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/Scripts/python.exe",
+  "python.terminal.activateEnvironment": true,
+
+  // pytest is configured by pytest.ini (testpaths = tests). Pointing the
+  // extension at the same directory keeps the Test Explorer and the CLI in
+  // agreement instead of discovering a different set of files.
+  "python.testing.pytestEnabled": true,
+  "python.testing.unittestEnabled": false,
+  "python.testing.pytestArgs": ["tests"],
+  "python.testing.autoTestDiscoverOnSaveEnabled": true,
+
+  // `app` is a top-level package resolved from the workspace root.
+  "python.analysis.extraPaths": ["${workspaceFolder}"],
+  "python.analysis.typeCheckingMode": "basic",
+
+  // The service writes blobs, SQLite files and upload fragments into data/.
+  // Hiding them keeps the explorer focused on source, and the watcher
+  // exclusions stop every upload from churning the file index.
+  "files.exclude": {
+    "**/__pycache__": true,
+    "**/*.py[cod]": true,
+    ".pytest_cache": true,
+    ".mypy_cache": true,
+    ".ruff_cache": true,
+    "**/*.egg-info": true
+  },
+  "files.watcherExclude": {
+    "**/.venv/**": true,
+    "**/data/**": true,
+    "**/.pytest_cache/**": true,
+    "**/__pycache__/**": true
+  },
+  "search.exclude": {
+    "**/.venv": true,
+    "**/data": true,
+    "**/.pytest_cache": true
+  },
+
+  "[python]": {
+    "editor.rulers": [88],
+    "editor.formatOnSave": false,
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": "explicit"
+    }
+  },
+
+  // The scripts print box-drawing characters and Chinese text; make sure the
+  // integrated terminal does not mangle either.
+  "terminal.integrated.env.windows": {
+    "PYTHONIOENCODING": "utf-8",
+    "PYTHONUTF8": "1"
+  }
+}

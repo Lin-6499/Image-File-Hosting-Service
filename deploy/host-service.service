@@ -1,0 +1,33 @@
+[Unit]
+Description=Image & Text Hosting Service
+After=network-online.target systemd-timesyncd.service
+Wants=network-online.target
+
+[Service]
+Type=exec
+User=hostsvc
+Group=hostsvc
+WorkingDirectory=/opt/host-service
+EnvironmentFile=/etc/host-service/env
+ExecStart=/opt/host-service/.venv/bin/uvicorn app.main:app \
+    --host 127.0.0.1 --port 8000 --workers 2 --no-access-log
+Restart=always
+RestartSec=3
+
+# Clock drift breaks signature verification: a server running even slightly
+# fast will reject links it just issued, and one running slow extends them.
+# systemd-timesyncd must be healthy; see the After= line above.
+
+# Hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+# The only writable path the service needs.
+ReadWritePaths=/data/host
+
+[Install]
+WantedBy=multi-user.target

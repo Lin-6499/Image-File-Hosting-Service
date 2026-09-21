@@ -1,0 +1,24 @@
+# Line endings
+#
+# The repository stores LF, and the working tree keeps LF, regardless of the
+# machine's `core.autocrlf`. Without this, a Windows clone with autocrlf=true
+# checks out CRLF -- which shows up as whole-file diffs, and in a systemd unit
+# or shell script a stray CR is a class of bug that costs an afternoon to find.
+#
+# This project deploys to Linux (nginx + systemd); see deploy/.
+* text=auto eol=lf
+
+# Explicitly binary. `text=auto` would otherwise try to normalise these, and a
+# "text" blob with CRLF rewritten inside it is a corrupted image.
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.webp binary
+*.ico  binary
+*.pdf  binary
+*.zip  binary
+
+# Keep patch files and SQLite databases untouched.
+*.patch binary
+*.db    binary

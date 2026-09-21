@@ -1,0 +1,196 @@
+{
+  // Tasks for anything you want to run without the debugger attached.
+  //
+  // The interpreter is an explicit path, not `${workspaceFolder}/.venv/Scripts/python.exe`.
+  // The command form only resolves after the Python extension has activated and
+  // picked an interpreter; until then it expands to nothing, the task runs
+  // " -m pytest -q", and you get a confusing "command not found" instead of a
+  // test run. An explicit path needs no extensions installed at all.
+  // On Linux/macOS change `.venv/Scripts/python.exe` to `.venv/bin/python`.
+  //
+  // Run with:  Ctrl+Shift+P -> "Tasks: Run Task"
+  "version": "2.0.0",
+  "tasks": [
+    // ------------------------------------------------------------------
+    // Server
+    // ------------------------------------------------------------------
+    {
+      "label": "server: dev (autoreload)",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/Scripts/python.exe -m scripts.dev",
+      "options": { "cwd": "${workspaceFolder}" },
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": {
+        "group": "server",
+        "panel": "dedicated",
+        "reveal": "always"
+      },
+      "detail": "Starts the development server on the port from .env (8000)."
+    },
+
+    // ------------------------------------------------------------------
+    // Tests
+    // ------------------------------------------------------------------
+    {
+      "label": "test: pytest (all)",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/Scripts/python.exe -m pytest -q",
+      "options": { "cwd": "${workspaceFolder}" },
+      "group": { "kind": "test", "isDefault": true },
+      "problemMatcher": {
+        "owner": "pytest",
+        "fileLocation": ["autoDetect", "${workspaceFolder}"],
+        "pattern": {
+          "regexp": "^\\s*(.+?):(\\d+):\\s+(?:\\w+Error|assert|AssertionError)\\s*(.*)$",
+          "file": 1,
+          "line": 2,
+          "message": 3
+        }
+      },
+      "presentation": { "group": "tests", "panel": "dedicated", "reveal": "always" },
+      "detail": "Full suite. Isolated -- writes only to a temp directory."
+    },
+    {
+      "label": "test: pytest (current file)",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/Scripts/python.exe -m pytest -q ${file}",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "presentation": { "group": "tests", "panel": "dedicated", "reveal": "always" },
+      "detail": "Runs only the file open in the editor."
+    },
+    {
+      "label": "test: smoke (ASGI)",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/Scripts/python.exe scripts/smoke_test.py",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "presentation": { "group": "tests", "panel": "dedicated", "reveal": "always" },
+      "detail": "Full lifecycle over the in-process transport. Isolated."
+    },
+    {
+      "label": "test: scan demo (ASGI)",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/Scripts/python.exe scripts/scan_demo.py",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "presentation": { "group": "tests", "panel": "dedicated", "reveal": "always" },
+      "detail": "The five malware gating rules. Isolated."
+    },
+    {
+      "label": "test: e2e over real HTTP",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/Scripts/python.exe scripts/e2e_local.py http://127.0.0.1:8000",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "presentation": { "group": "tests", "panel": "dedicated", "reveal": "always" },
+      "detail": "47 checks over TCP. Needs the server running on :8000."
+    },
+    {
+      "label": "test: av gate over real HTTP",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/Scripts/python.exe scripts/av_e2e.py http://127.0.0.1:8000",
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": { "AV_BACKEND": "stub" }
+      },
+      "problemMatcher": [],
+      "presentation": { "group": "tests", "panel": "dedicated", "reveal": "always" },
+      "detail": "20 checks. Needs the server running with AV_BACKEND=stub."
+    },
+
+    // ------------------------------------------------------------------
+    // Maintenance
+    // ------------------------------------------------------------------
+    {
+      "label": "maintenance: audit blob store",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/Scripts/python.exe scripts/verify_blobs.py",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "presentation": { "group": "maint", "panel": "dedicated", "reveal": "always" },
+      "detail": "Re-hashes every blob and cross-checks live rows. Non-zero exit on any problem."
+    },
+    {
+      "label": "maintenance: cleanup sweep",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/Scripts/python.exe scripts/cleanup.py",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "presentation": { "group": "maint", "panel": "dedicated", "reveal": "always" },
+      "detail": "Expiry, reference-counted reclamation, stale-pending release."
+    },
+    {
+      "label": "maintenance: mint API key",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/Scripts/python.exe -m scripts.mintkey ${input:keyName}",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "presentation": { "group": "maint", "panel": "dedicated", "reveal": "always" },
+      "detail": "Creates a key. The plaintext is shown once and never stored."
+    },
+    {
+      "label": "maintenance: list API keys",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/Scripts/python.exe -m scripts.keys",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "presentation": { "group": "maint", "panel": "dedicated", "reveal": "always" },
+      "detail": "key_id, label, enabled, created, bytes used."
+    },
+    {
+      "label": "maintenance: revoke API key",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/Scripts/python.exe -m scripts.keys disable ${input:keyId}",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "presentation": { "group": "maint", "panel": "dedicated", "reveal": "always" },
+      "detail": "Disables a key. Takes effect on the next request; no restart."
+    },
+
+    // ------------------------------------------------------------------
+    // Setup
+    // ------------------------------------------------------------------
+    {
+      "label": "setup: install dependencies",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/Scripts/python.exe -m pip install -r requirements.txt -r requirements-dev.txt",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "presentation": { "group": "setup", "panel": "dedicated", "reveal": "always" },
+      "detail": "Installs into the project virtualenv only."
+    },
+
+    // ------------------------------------------------------------------
+    // Composite
+    // ------------------------------------------------------------------
+    {
+      "label": "verify: everything (no server needed)",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "test: pytest (all)",
+        "test: smoke (ASGI)",
+        "test: scan demo (ASGI)",
+        "maintenance: audit blob store"
+      ],
+      "problemMatcher": [],
+      "detail": "The four layers that do not require a running server."
+    }
+  ],
+
+  "inputs": [
+    {
+      "id": "keyName",
+      "type": "promptString",
+      "description": "API key label (e.g. codex-dev)",
+      "default": "dev"
+    },
+    {
+      "id": "keyId",
+      "type": "promptString",
+      "description": "key_id to revoke (from 'maintenance: list API keys')",
+      "default": "key_"
+    }
+  ]
+}

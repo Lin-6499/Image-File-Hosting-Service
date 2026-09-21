@@ -1,0 +1,199 @@
+### VS Code REST Client console for the HTTP API
+###
+### Requires the "REST Client" extension (humao.rest-client), which is in
+### .vscode/extensions.json. Click "Send Request" above any request to run it;
+### the response opens in a side panel.
+###
+### Setup:
+###   1. Start the server:  Tasks -> "server: dev (autoreload)"
+###   2. Mint a key:        Tasks -> "maintenance: mint API key"
+###   3. Paste it below. The plaintext is shown once and stored only as a hash.
+###
+### Requests reference earlier responses by name (see @name upload), so the
+### download and image links are picked up automatically -- no copy-pasting
+### signed URLs, which is the point of using this over curl.
+
+@base = http://127.0.0.1:8000
+@apiKey = sk_PASTE_YOUR_KEY_HERE
+
+### ------------------------------------------------------------------
+### Health
+### ------------------------------------------------------------------
+
+### Liveness -- process is up
+GET {{base}}/healthz
+
+### Readiness -- storage is writable (this is the one to probe in production)
+GET {{base}}/readyz
+
+### OpenAPI document
+GET {{base}}/openapi.json
+
+### ------------------------------------------------------------------
+### Auth boundary -- all three should be 401
+### ------------------------------------------------------------------
+
+### No credentials at all
+POST {{base}}/api/v1/files
+Content-Type: multipart/form-data; boundary=----Boundary
+
+------Boundary
+Content-Disposition: form-data; name="file"; filename="probe.txt"
+Content-Type: text/plain
+
+< ./scratch/notes.txt
+------Boundary--
+
+### A key that does not exist
+POST {{base}}/api/v1/files
+Authorization: Bearer sk_not-a-real-key
+Content-Type: multipart/form-data; boundary=----Boundary
+
+------Boundary
+Content-Disposition: form-data; name="file"; filename="probe.txt"
+Content-Type: text/plain
+
+< ./scratch/notes.txt
+------Boundary--
+
+### ------------------------------------------------------------------
+### Upload
+### ------------------------------------------------------------------
+
+# @name upload
+POST {{base}}/api/v1/files
+Authorization: Bearer {{apiKey}}
+Content-Type: multipart/form-data; boundary=----Boundary
+
+------Boundary
+Content-Disposition: form-data; name="file"; filename="photo.png"
+Content-Type: image/png
+
+< ./scratch/photo.png
+------Boundary
+Content-Disposition: form-data; name="ttl"
+
+300
+------Boundary--
+
+### A non-image: no image_url is produced, mime falls back to octet-stream
+POST {{base}}/api/v1/files
+Authorization: Bearer {{apiKey}}
+Content-Type: multipart/form-data; boundary=----Boundary
+
+------Boundary
+Content-Disposition: form-data; name="file"; filename="notes.txt"
+Content-Type: text/plain
+
+< ./scratch/notes.txt
+------Boundary--
+
+### Malware gate -- requires the server started with AV_BACKEND=stub.
+### Expect 201 with scan_status=infected and servable=false.
+POST {{base}}/api/v1/files
+Authorization: Bearer {{apiKey}}
+Content-Type: multipart/form-data; boundary=----Boundary
+
+------Boundary
+Content-Disposition: form-data; name="file"; filename="payload.bin"
+Content-Type: application/octet-stream
+
+< ./scratch/evil.bin
+------Boundary--
+
+### ------------------------------------------------------------------
+### Signed links -- the security core
+### ------------------------------------------------------------------
+
+### 200: the signed download link works
+GET {{upload.response.body.$.download_url}}
+
+### 200: the image display link, permanently public and unguessable
+GET {{upload.response.body.$.image_url}}
+
+### ------------------------------------------------------------------
+### Tampering -- every one of these must be refused
+###
+### The signature is not exposed as a separate field (it only ever appears
+### inside the signed URL), and REST Client cannot split a string out of a
+### response, so these use bogus credentials rather than a reused-valid-sig
+### variant. They still exercise the whole rejection path.
+###
+### For the sharper case -- a *valid* signature presented with a rewritten
+### purpose -- copy the `sig=` value out of the upload response above and
+### paste it below. That is the attack purpose-binding exists to stop.
+### ------------------------------------------------------------------
+
+### 403: garbage signature with a plausible exp
+GET {{base}}/d/{{upload.response.body.$.file_id}}?exp=9999999999&p=dl&sig=deadbeef
+
+### 403: p=img with a signature that was minted for p=dl.
+### PASTE_SIG must be replaced with the sig= value from the upload response;
+### leaving it as-is still returns 403, just for the wrong reason.
+GET {{base}}/d/{{upload.response.body.$.file_id}}?exp=9999999999&p=img&sig=PASTE_SIG
+
+### 410: exp rewritten into the past.
+### Expiry is checked before the signature, so this is Gone rather than
+### Forbidden regardless of whether the MAC would have matched.
+GET {{base}}/d/{{upload.response.body.$.file_id}}?exp=1&p=dl&sig=x
+
+### 403: unknown file_id
+GET {{base}}/d/NOTAREALID?exp=9999999999&p=dl&sig=deadbeef
+
+### 404: image path whose sha8 does not match the record
+GET {{base}}/i/{{upload.response.body.$.file_id}}/deadbeef.webp
+
+### ------------------------------------------------------------------
+### Metadata and links
+### ------------------------------------------------------------------
+
+### File metadata, including width/height parsed server-side
+GET {{base}}/api/v1/files/{{upload.response.body.$.file_id}}
+Authorization: Bearer {{apiKey}}
+
+### Markdown snippet ready to paste into a document
+GET {{base}}/api/v1/files/{{upload.response.body.$.file_id}}/image
+Authorization: Bearer {{apiKey}}
+
+### Re-issue a link with a 60 second lifetime
+POST {{base}}/api/v1/files/{{upload.response.body.$.file_id}}/links
+Authorization: Bearer {{apiKey}}
+Content-Type: application/json
+
+{
+  "ttl": 60,
+  "purpose": "dl"
+}
+
+### Ask for an absurd TTL -- clamped to MAX_TTL (604800 by default)
+POST {{base}}/api/v1/files/{{upload.response.body.$.file_id}}/links
+Authorization: Bearer {{apiKey}}
+Content-Type: application/json
+
+{
+  "ttl": 99999999
+}
+
+### ------------------------------------------------------------------
+### Listing, stats, deletion
+### ------------------------------------------------------------------
+
+### Recent uploads
+GET {{base}}/api/v1/files?limit=10
+Authorization: Bearer {{apiKey}}
+
+### Counts and disk pressure
+GET {{base}}/api/v1/stats
+Authorization: Bearer {{apiKey}}
+
+### Soft delete. The blob is reclaimed later by the cleanup sweep, because
+### other records may reference the same content.
+DELETE {{base}}/api/v1/files/{{upload.response.body.$.file_id}}
+Authorization: Bearer {{apiKey}}
+
+### 404: the metadata is gone
+GET {{base}}/api/v1/files/{{upload.response.body.$.file_id}}
+Authorization: Bearer {{apiKey}}
+
+### 404: and so is the signed download link
+GET {{upload.response.body.$.download_url}}
